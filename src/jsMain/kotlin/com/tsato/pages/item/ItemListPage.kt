@@ -1,4 +1,7 @@
 package com.tsato.pages.item
 
-class ItemListPage {
+import react.VFC
+
+val itemListPage = VFC {
+
 }

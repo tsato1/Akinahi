@@ -7,8 +7,6 @@ sealed interface Handiwork
 
 @Serializable
 sealed class Category(val name: String) {
-    object NotSelected: Category("--- Select a Category ---")
-
     object Meat: Category("Meat"), Food
     object SeaFood: Category("Sea Food"), Food
     object Rice: Category("Rice"), Food
@@ -22,7 +20,7 @@ sealed class Category(val name: String) {
 
     companion object {
         fun getAllFoodCategories(): List<Category> = listOf(
-            NotSelected, Meat, SeaFood, Rice, Bread, Vegetables, Fruits, Diary
+            Meat, SeaFood, Rice, Bread, Vegetables, Fruits, Diary
         )
         fun getAllHandiworkCategories(): List<Category> = listOf(
             Pottery, Clothes

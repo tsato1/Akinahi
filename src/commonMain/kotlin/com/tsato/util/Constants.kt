@@ -1,3 +1,8 @@
+/* Tags */
+const val maxNumTags = 1 // max number of tags allowed
+const val maxNumCharsForTag = 10 // max number of characters for a tag
+
+/* Photos */
 const val photoThumbnailSize = 140 // in pixel. the width and height of the thumbnail photo
 
 const val maxPhotoSizeInKb = 2000 // max photo size in KB

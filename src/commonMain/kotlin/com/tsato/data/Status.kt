@@ -6,4 +6,8 @@ import kotlinx.serialization.Serializable
 sealed class Status {
     object Draft: Status()
     object Published: Status()
+
+    fun getAllStatus(): List<Status> {
+        return listOf(Published, Draft)
+    }
 }

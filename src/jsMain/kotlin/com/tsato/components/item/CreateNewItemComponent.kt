@@ -1,20 +1,31 @@
 package com.tsato.components.item
 
+import com.tsato.addItem
+import com.tsato.components.modalComponent
 import com.tsato.data.Category
+import com.tsato.data.Status
+import com.tsato.data.Status.Draft.getAllStatus
+import com.tsato.data.Type
+import com.tsato.data.model.ItemModel
 import com.tsato.util.isDescriptionValid
 import com.tsato.util.isPriceValid
 import com.tsato.util.isTitleValid
 import csstype.*
 import emotion.react.css
+import io.ktor.http.*
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 import pathToDefaultPhoto
-import react.FC
-import react.Props
+import react.VFC
 import react.dom.events.ChangeEventHandler
 import react.dom.events.FormEventHandler
+import react.dom.html.ReactHTML.br
 import react.dom.html.ReactHTML.div
 import react.dom.html.ReactHTML.form
 import react.dom.html.ReactHTML.input
+import react.dom.html.ReactHTML.option
 import react.dom.html.ReactHTML.p
+import react.dom.html.ReactHTML.select
 import react.dom.html.ReactHTML.span
 import react.dom.html.ReactHTML.table
 import react.dom.html.ReactHTML.tbody
@@ -26,12 +37,10 @@ import react.useState
 import web.dom.document
 import web.html.*
 
-external interface CreateNewItemProps : Props {
-    var onSubmit: (Category, String, String, String, List<ByteArray>) -> Unit
-}
+private val scope = MainScope()
 
-val createNewItemComponent = FC<CreateNewItemProps> { props ->
-    val (category, setCategory) = useState<Category>()
+val createNewItemComponent = VFC {
+    val (category, setCategory) = useState<Category>(Category.Rice)
     val (categoryErrorMessage, setCategoryErrorMessage) = useState("")
     val (title, setTitle) = useState("")
     val (titleErrorMessage, setTitleErrorMessage) = useState("")
@@ -39,15 +48,13 @@ val createNewItemComponent = FC<CreateNewItemProps> { props ->
     val (descriptionErrorMessage, setDescriptionErrorMessage) = useState("")
     val (price, setPrice) = useState("")
     val (priceErrorMessage, setPriceErrorMessage) = useState("")
+    val (tagList, setTagList) = useState<List<String>>(emptyList())
+    val (photoList, setPhotoList) = useState<List<ByteArray>>(emptyList())
     val (photoListErrorMessage, setPhotoListErrorMessage) = useState("")
 
     val submitHandler: FormEventHandler<HTMLFormElement> = {
         var hasError = false
 
-        if (category == null || category is Category.NotSelected) {
-            setCategoryErrorMessage("Category is a mandatory field")
-            hasError = true
-        }
         if (!isTitleValid(title)) {
             setTitleErrorMessage("Title is invalid")
             hasError = true
@@ -72,19 +79,17 @@ val createNewItemComponent = FC<CreateNewItemProps> { props ->
         if (photos.isEmpty()) {
             setPhotoListErrorMessage("At least one photo is required.")
             hasError = true
+        } else {
+            setPhotoList(photoList)
         }
 
         if (!hasError) {
-            props.onSubmit(
-                category!!,
-                title,
-                description,
-                price,
-                photos
-            )
-            setTitle("")
+            showModal()
+            setCategoryErrorMessage("")
+            setTitleErrorMessage("")
             setDescription("")
             setPrice("")
+            setPhotoListErrorMessage("")
         }
         it.preventDefault()
     }
@@ -194,7 +199,7 @@ val createNewItemComponent = FC<CreateNewItemProps> { props ->
                             }
                             textarea {
                                 css {
-                                    maxWidth = 1000.px
+                                    maxWidth = 100.pct
                                 }
                                 cols = 40
                                 rows = 7
@@ -266,6 +271,24 @@ val createNewItemComponent = FC<CreateNewItemProps> { props ->
                             }
                         }
                     }
+                    tr {
+                        th {
+                            css {
+                                border = Border(1.px, LineStyle.solid, Color("black"))
+                            }
+                            +"Tags"
+                        }
+                        td {
+                            css {
+                                border = Border(1.px, LineStyle.solid, Color("black"))
+                            }
+                            tagListComponent {
+                                onTagsChange = {
+                                    setTagList(it)
+                                }
+                            }
+                        }
+                    }
                 }
             }
             div {
@@ -279,4 +302,99 @@ val createNewItemComponent = FC<CreateNewItemProps> { props ->
             }
         }
     }
+
+    val (status, setStatus) = useState<Status>(Status.Published)
+    val (errorMessage, setErrorMessage) = useState("")
+    modalComponent {
+        val modalSubmitHandler: FormEventHandler<HTMLFormElement> = {
+            console.log("asdf category=${category.name}")
+            console.log("asdf title=$title")
+            console.log("asdf price=$price")
+            console.log("asdf status=$status")
+            scope.launch {
+                val response = addItem(
+                    ItemModel(
+                        itemId = "",
+                        category = category,
+                        type = Type.Product,
+                        title = title,
+                        description = description,
+                        price = price.toLong(),
+                        photos = photoList,
+                        status = Status.Draft,
+                        tags = tagList,
+                        reviews = emptyList(),
+                        createDate = "",
+                        publishDate = "",
+                        lastUpdateDate = ""
+                    )
+                )
+//                if (response.status != HttpStatusCode.OK) {
+//                    setErrorMessage("")
+//                }
+            }
+            it.preventDefault()
+        }
+
+        headerTitle = "New Item is about to be created!"
+        content = VFC {
+            form {
+                onSubmit = modalSubmitHandler
+
+                select {
+                    css {
+                        padding = 8.px
+                    }
+                    onChange = {
+                        val chosenStatus = getAllStatus()[it.target.value.toInt()]
+                        setStatus(chosenStatus)
+                    }
+                    option {
+                        value = 0
+                        +"Publish"
+                    }
+                    option {
+                        value = 1
+                        +"Save as Draft"
+                    }
+                }
+                +"  AND"
+                br {}
+                div {
+                    css {
+                        display = Display.flex
+                        flexDirection = FlexDirection.row
+                        justifyContent = JustifyContent.spaceBetween
+                    }
+                    input {
+                        css {
+                            padding = 8.px
+                        }
+                        type = InputType.submit
+                        value = "Go back"
+                    }
+                    input {
+                        css {
+                            padding = 8.px
+                        }
+                        type = InputType.submit
+                        value = "Go next"
+                    }
+                }
+                br {}
+                br {}
+                span {
+                    css {
+                        color = Color("red")
+                    }
+                    +errorMessage
+                }
+            }
+        }
+    }
+}
+
+private fun showModal() {
+    val modalContainer = document.getElementById("modal-container") as HTMLDivElement
+    modalContainer.style.display = Display.block.toString()
 }
